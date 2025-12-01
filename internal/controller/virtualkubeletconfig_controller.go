@@ -419,7 +419,7 @@ WantedBy=multi-user.target`,
 	var commands = scope.Config.Spec.Commands
 	if scope.Config.Spec.VirtualKubelet.Url != "" {
 		commands = append(commands,
-			"curl "+scope.Config.Spec.VirtualKubelet.Url+"--output /usr/local/bin/virtual-kubelet",
+			"curl "+scope.Config.Spec.VirtualKubelet.Url+" --output /usr/local/bin/virtual-kubelet",
 			"chmod a+x /usr/local/bin/virtual-kubelet",
 			"systemctl enable --now virtual-kubelet",
 		)
