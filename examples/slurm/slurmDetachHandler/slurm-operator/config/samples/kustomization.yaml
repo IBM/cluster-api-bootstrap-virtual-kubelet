@@ -1,0 +1,4 @@
+## Append samples of your project ##
+resources:
+- cluster.x-k8s.io_v1_machine.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples

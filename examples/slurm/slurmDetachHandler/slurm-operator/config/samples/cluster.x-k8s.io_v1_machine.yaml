@@ -1,0 +1,9 @@
+apiVersion: cluster.x-k8s.io.mydomain.com/v1
+kind: Machine
+metadata:
+  labels:
+    app.kubernetes.io/name: slurm-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: machine-sample
+spec:
+  # TODO(user): Add fields here
