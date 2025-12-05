@@ -29,7 +29,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	cluster "sigs.k8s.io/cluster-api/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	cluster "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
 // MachineReconciler reconciles a Machine object
@@ -38,9 +39,7 @@ type MachineReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=cluster.x-k8s.io.mydomain.com,resources=machines,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=cluster.x-k8s.io.mydomain.com,resources=machines/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=cluster.x-k8s.io.mydomain.com,resources=machines/finalizers,verbs=update
+//+kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status;machinepools;machinepools/status,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -77,11 +76,20 @@ func (r *MachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	if machine.ObjectMeta.DeletionTimestamp != nil && machine.Annotations != nil && strings.Contains(machine.ObjectMeta.Name, "slurm-worker") {
 		logger.Info("Deprovisioning a machine")
+		//TODO: get the metal3machine
+		logger.Info("Getting metal3 machine")
+		metal3machine := &infrav1.Metal3Machine{}
+		if err := r.Client.Get(ctx, req.NamespacedName, metal3machine); err != nil {
+			if apierrors.IsNotFound(err) {
+				return ctrl.Result{}, nil
+			}
+			return ctrl.Result{}, err
+		}
 
 		// HTTP request to detch node from the cluster
 		regex := regexp.MustCompile(`[0-9]{1,3}\.[0-9]{1,3}\.[2]{3}\.[0-9]{1,3}`)
 		var externalNicIndex int
-		for i, nic := range machine.Status.Addresses {
+		for i, nic := range metal3machine.Status.Addresses {
 			if regex.MatchString(nic.Address) {
 				externalNicIndex = i
 			}
