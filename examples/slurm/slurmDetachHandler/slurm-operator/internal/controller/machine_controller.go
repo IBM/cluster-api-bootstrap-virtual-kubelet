@@ -39,7 +39,8 @@ type MachineReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status;machinepools;machinepools/status,verbs=get;list;watch
+//+kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status;machinepools;machinepools/status,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3machines,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -61,11 +62,17 @@ func (r *MachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	if machine.Status.Phase == "Provisioning" && machine.Annotations == nil && strings.Contains(machine.ObjectMeta.Name, "slurm-worker") {
+	annotationKey := "pre-drain.delete.hook.machine.cluster.x-k8s.io"
+	annotationVal := "drain-slurm"
+
+	if machine.Status.Phase == "Provisioning" && strings.Contains(machine.ObjectMeta.Name, "slurm-worker") && (machine.Annotations == nil || machine.Annotations[annotationKey] == "") {
 		logger.Info("Provision a machine")
 		// Add annotation to wait the drainig before deprovisioning
-		machine.Annotations = make(map[string]string)
-		machine.Annotations["pre-drain.delete.hook.machine.cluster.x-k8s.io"] = "drain-slurm"
+		if machine.Annotations == nil {
+			machine.Annotations = make(map[string]string)
+		}
+		// machine.Annotations["pre-drain.delete.hook.machine.cluster.x-k8s.io"] = "drain-slurm"
+		machine.Annotations[annotationKey] = annotationVal
 
 		err := r.Client.Update(context.TODO(), machine)
 		if err != nil {
@@ -94,7 +101,10 @@ func (r *MachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				externalNicIndex = i
 			}
 		}
-		node := machine.Status.Addresses[externalNicIndex].Address
+
+                // reading from metal3machine and not from machine since a deprovisioning
+                // request may arrive before Addresses get propagated to machine
+		node := metal3machine.Status.Addresses[externalNicIndex].Address
 		mode := "detach"
 		url := fmt.Sprintf("http://%s:8090/%s", node, mode)
 		resp, err := http.Get(url)
