@@ -9,7 +9,7 @@ git clone https://github.com/metal3-io/metal3-dev-env.gitcd metal3-dev-env/
 
 cat > config_${USER}.sh << EOF
 export CLUSTER_NAME="workload-cluster"
-export TARGET_NODE_MEMORY=2048
+export TARGET_NODE_MEMORY=4096
 export SSH_PUB_KEY=~/.ssh/id_rsa.pub
 
 export NUM_NODES=5
@@ -42,16 +42,15 @@ cd virtual-kubelet
 git checkout capi
 make build
 cp bin/virtual-kubelet /opt/metal3-dev-env/ironic/html/
-chmod a+rwx /opt/metal3-dev-env/ironic/html/images/virtual-kubelet
+chmod a+rwx /opt/metal3-dev-env/ironic/html/virtual-kubelet
 ```
-
 
 
 
 Download and build the Cluster API Bootstrap Provider Virtual Kubelet (CBPV)
 ```bash
- git clone git@github.ibm.com:Accelerated-Discovery/cluster-api-bootstrap-virtual-kubelet.git
- cd cluster-api-bootstrap-virtual-kubelet/
+git clone git@github.com:IBM/cluster-api-bootstrap-virtual-kubelet.git
+cd cluster-api-bootstrap-virtual-kubelet/
 
 ### Build provider
 make docker-build
@@ -63,6 +62,8 @@ kubectl apply -f dist/install.yaml
 Install the Slurm Detach Handler
 ```
 cd examples/slurm/slurmDetachHandler/slurm-operator/
+make docker-build
+make docker-push
 make build-installer
 kubectl apply -f dist/install.yaml
 cd -
@@ -83,6 +84,7 @@ users:
 
 ```
 
+
 Deploy the Slurm head node
 ```bash
 kubectl apply -f examples/slurm/machineDeployments/slurm-head.yaml
@@ -91,6 +93,5 @@ kubectl apply -f examples/slurm/machineDeployments/slurm-head.yaml
 
 Deploy the Slurm worker nodes
 ```bash
-kubectl apply -f examples/slurm/machineDeployments/slurm-head.yaml
+kubectl apply -f examples/slurm/machineDeployments/slurm-worker.yaml
 ```
-
